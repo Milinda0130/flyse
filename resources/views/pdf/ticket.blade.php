@@ -94,16 +94,18 @@
       </table>
       <table>
         <tr>
-          <td style="padding:18px 0 16px 22px; width:16%;">
+          <td style="padding:16px 0 16px 22px; width:20%;">
+            @if($s['logo'])<img src="{{ $s['logo'] }}" alt="{{ $s['airline'] }}" style="max-height:26px; max-width:100px; margin-bottom:6px;">@endif
             <div style="font-size:14px; font-weight:bold; color:#1b365d;">{{ $s['flight'] }}</div>
+            @if($s['airline'])<div style="font-size:8.5px; font-weight:bold; color:#111827; margin-top:4px;">{{ $s['airline'] }}</div>@endif
           </td>
-          <td style="padding:16px 8px; width:30%;">
+          <td style="padding:16px 8px; width:28%;">
             <div style="font-size:17px; font-weight:bold; color:#0f1a29;">{{ $s['from']['code'] }}</div>
             @if($s['from']['name'])<div style="font-size:8.5px; color:#4b5563; margin-top:4px;">{{ $s['from']['name'] }}</div>@endif
             @if($s['from']['city'])<div class="muted" style="font-size:7.5px; margin-top:3px;">{{ $s['from']['city'] }}</div>@endif
             <div style="font-size:10.5px; font-weight:bold; color:#1b365d; margin-top:8px;">{{ $s['departure'] }}</div>
           </td>
-          <td style="padding:30px 8px 0; width:18%; text-align:center;">
+          <td style="padding:30px 8px 0; width:16%; text-align:center;">
             @if($s['duration'])
               <div class="label">Duration</div>
               <div style="border-top:1px solid #c5cfdc; margin:4px 10px 6px;"></div>
@@ -123,7 +125,6 @@
       <table class="segfoot">
         <tr>
           <td style="padding:11px 22px; line-height:1.9;">
-            @if($s['airline'])<div style="font-size:8.5px; font-weight:bold; color:#111827;">{{ $s['airline'] }}</div>@endif
             <div class="muted" style="font-size:8.5px;">
               Status: <strong style="color:#111827;">{{ $s['status'] }}</strong>
               @if($s['baggage'])<span style="color:#cfd6e0;">&nbsp;|&nbsp;</span> Checked Baggage: <strong style="color:#111827;">{{ $s['baggage'] }}</strong>@endif

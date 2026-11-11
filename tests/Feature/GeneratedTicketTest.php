@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Mail\TicketEmail;
+use App\Models\Airline;
 use App\Models\Booking;
 use App\Models\BookingEmail;
 use App\Models\Document;
+use App\Services\AirlineLogoService;
 use App\Services\GeneratedTicketService;
 use App\Services\SettingsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -106,6 +108,38 @@ class GeneratedTicketTest extends TestCase
         // The internal booking reference is not printed.
         $this->assertStringNotContainsString($booking->booking_code, $html);
         $this->assertStringNotContainsString('Checked Baggage', $html);
+    }
+
+    public function test_airline_logo_is_printed_with_the_airline_name_on_each_flight(): void
+    {
+        $booking = $this->sampleBooking();
+        $etihad = Airline::create(['name' => 'Etihad Airways', 'iata_code' => 'EY']);
+        app(AirlineLogoService::class)->store($etihad, UploadedFile::fake()->image('EY.png', 300, 80));
+        Airline::create(['name' => 'Qatar Airways', 'iata_code' => 'QR']);
+        [, $byCode, $noLogo, $unknown] = $booking->flights->sortBy('segment_order')->values()->all();
+        $byCode->update(['airline' => 'Etihad']);
+        $noLogo->update(['airline' => 'Qatar Airways', 'flight_number' => 'QR655']);
+        $unknown->update(['airline' => 'Unknown Air', 'flight_number' => 'ZZ123']);
+
+        $data = app(GeneratedTicketService::class)->viewData($booking->fresh(), $booking->passengers->first(), self::CODES);
+        [$name, $code, $plain, $none] = $data['segments'];
+
+        $this->assertStringStartsWith('data:image/png;base64,', $name['logo'], 'matched by airline name');
+        $this->assertSame($name['logo'], $code['logo'], 'matched by the flight number designator');
+        $this->assertSame('Etihad', $code['airline'], 'the recorded airline name is printed');
+        $this->assertNull($plain['logo'], 'airline has no uploaded logo');
+        $this->assertNull($none['logo'], 'airline is not in the list');
+
+        $html = view('pdf.ticket', $data)->render();
+        $this->assertMatchesRegularExpression('#<img src="data:image/png;base64,[^"]+" alt="Etihad Airways"[^>]*>\s*<div[^>]*>EY 391</div>\s*<div[^>]*>Etihad Airways</div>#', $html);
+        $this->assertSame(2, substr_count($html, 'data:image/png;base64,'), 'no agency logo is set, so only the two Etihad flights carry one');
+        $this->assertStringContainsString('Unknown Air', $html);
+
+        $pdf = app(GeneratedTicketService::class)->render($booking->fresh(), $booking->passengers->first(), self::CODES);
+        $this->assertStringStartsWith('%PDF-', $pdf);
+        if ($out = env('TICKET_LOGO_PDF_SAMPLE_OUT')) {
+            file_put_contents($out, $pdf);
+        }
     }
 
     public function test_generate_store_verify_and_email_without_changing_the_booking(): void

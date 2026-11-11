@@ -23,10 +23,8 @@ Requires PHP 8.4+ (the locked Symfony 8 packages need it), Composer, Node.js and
    npm install
    php artisan migrate
    php artisan db:seed                      # creates the owner account
-   php artisan db:seed --class=DemoSeeder   # optional sample data (not in production)
    ```
    If `OWNER_PASSWORD` is empty, the seeder generates one and prints it once.
-   Demo logins: `staff@agency.test` / `StaffPass123`, `viewer@agency.test` / `ViewerPass123`.
 
 ## Running it
 

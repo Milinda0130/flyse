@@ -107,6 +107,9 @@ class FlightQuotationTest extends TestCase
             $this->assertStringNotContainsString($text, $html, $text);
         }
         $this->assertStringContainsString('data:image/png;base64,', $html, 'airline logos embedded');
+        // The airline name is printed with its logo, not instead of it.
+        $this->assertMatchesRegularExpression('#<img src="data:image/png;base64,[^"]+" alt="Norwegian"[^>]*>\s*<div[^>]*>Norwegian</div>#', $html);
+        $this->assertMatchesRegularExpression('#<img src="data:image/png;base64,[^"]+" alt="SAS"[^>]*>\s*<div[^>]*>SAS</div>#', $html);
         $visible = strip_tags(preg_replace('#<style.*?</style>#s', '', $html));
         foreach (['SECRET-INTERNAL-NOTE', 'OPTION-INTERNAL', '2,100', '2100', '289', 'margin', 'supplier'] as $secret) {
             $this->assertStringNotContainsStringIgnoringCase($secret, $visible, $secret);

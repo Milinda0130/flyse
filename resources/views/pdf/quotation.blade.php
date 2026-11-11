@@ -192,12 +192,11 @@
             </td>
             <td style="padding:10px 12px 8px; border-left:1px solid #dbe3ef;">
               @if($s['logo'])
-                <img src="{{ $s['logo'] }}" style="max-height:24px; max-width:130px;">
-              @else
-                <div style="font-size:11px; font-weight:bold; color:#12305a;">{{ $s['airline'] }}</div>
+                <img src="{{ $s['logo'] }}" alt="{{ $s['airline'] }}" style="max-height:24px; max-width:130px;">
               @endif
+              <div style="font-size:11px; font-weight:bold; color:#12305a;@if($s['logo']) margin-top:3px;@endif">{{ $s['airline'] }}</div>
               <div style="margin-top:4px; font-size:9.5px;">{{ $s['flight'] }}@if($s['cabin']) · {{ $s['cabin'] }}@endif @if($s['aircraft']) · {{ $s['aircraft'] }}@endif</div>
-              <div class="muted small">@if($s['operatedBy'])Operated by {{ $s['operatedBy'] }}@elseif($s['logo']){{ $s['airline'] }}@endif</div>
+              @if($s['operatedBy'])<div class="muted small">Operated by {{ $s['operatedBy'] }}</div>@endif
               @if($s['baggage'])<div class="muted small">Baggage: {{ $s['baggage'] }}</div>@endif
               @if($s['notes'])<div class="muted small">{{ $s['notes'] }}</div>@endif
             </td>

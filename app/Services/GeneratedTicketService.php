@@ -7,6 +7,7 @@ use App\Enums\DocumentSource;
 use App\Enums\DocumentType;
 use App\Enums\FlightStatus;
 use App\Enums\VerificationStatus;
+use App\Models\Airline;
 use App\Models\Booking;
 use App\Models\BookingFlight;
 use App\Models\Document;
@@ -14,6 +15,7 @@ use App\Models\Passenger;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -38,7 +40,7 @@ class GeneratedTicketService
     /** Segments are shown as confirmed (HK) only once the reservation is confirmed. */
     private const CONFIRMED = [BookingStatus::Confirmed, BookingStatus::Ticketed, BookingStatus::Changed, BookingStatus::Completed];
 
-    public function __construct(private AgencyBrandingService $branding) {}
+    public function __construct(private AgencyBrandingService $branding, private AirlineLogoService $logos) {}
 
     /** Why no ticket PDF can be created for this booking (empty = OK). @return list<string> */
     public function problems(Booking $booking): array
@@ -175,8 +177,9 @@ class GeneratedTicketService
         $ticket = $this->activeTicket($booking, $passenger);
         $airports = $this->airports();
         $confirmed = in_array($booking->status, self::CONFIRMED, true);
+        $airlineLogos = $this->airlineLogos($booking->flights);
 
-        $segments = $booking->flights->map(function (BookingFlight $f) use ($airports, $confirmed) {
+        $segments = $booking->flights->map(function (BookingFlight $f) use ($airports, $confirmed, $airlineLogos) {
             $from = $airports[$f->origin_code] ?? null;
             $to = $airports[$f->destination_code] ?? null;
 
@@ -185,6 +188,7 @@ class GeneratedTicketService
                 'cabin' => $f->cabin_class?->label(),
                 'flight' => trim($this->airlineCode($f->flight_number).' '.$this->flightDigits($f->flight_number)),
                 'airline' => $f->airline,
+                'logo' => $airlineLogos[$f->id] ?? null,
                 'from' => ['code' => $f->origin_code, 'name' => $from['name'] ?? null, 'city' => $from['city'] ?? null],
                 'to' => ['code' => $f->destination_code, 'name' => $to['name'] ?? null, 'city' => $to['city'] ?? null],
                 'departure' => $f->departure_at?->format('d M Y · H:i'),
@@ -211,6 +215,41 @@ class GeneratedTicketService
             'segments' => $segments,
             'generatedAt' => now('UTC')->format('d M Y \a\t H:i'),
         ];
+    }
+
+    /**
+     * Logo per booking flight (data: URI), keyed by flight id. Booking flights store the airline as
+     * text, so each one is matched to the airline list by name first, then by the flight number's
+     * two-character airline designator. Flights without a match, or whose airline has no uploaded
+     * logo, are left out and only the airline name is printed.
+     *
+     * @param  Collection<int, BookingFlight>  $flights
+     * @return array<int, string>
+     */
+    private function airlineLogos(Collection $flights): array
+    {
+        $names = $flights->map(fn (BookingFlight $f) => Str::lower(trim((string) $f->airline)))->filter()->unique()->values();
+        $codes = $flights->map(fn (BookingFlight $f) => $this->airlineCode((string) $f->flight_number))->filter(fn ($c) => strlen($c) === 2)->unique()->values();
+        if ($names->isEmpty() && $codes->isEmpty()) {
+            return [];
+        }
+
+        $airlines = Airline::query()->whereNotNull('logo_key')
+            ->where(fn ($q) => $q->whereIn(DB::raw('LOWER(name)'), $names->all())->orWhereIn('iata_code', $codes->all()))
+            ->get();
+        $byName = $airlines->keyBy(fn (Airline $a) => Str::lower($a->name));
+        $byCode = $airlines->filter(fn (Airline $a) => $a->iata_code)->keyBy('iata_code');
+        $uris = $airlines->mapWithKeys(fn (Airline $a) => [$a->id => $this->logos->dataUri($a)]);
+
+        $logos = [];
+        foreach ($flights as $f) {
+            $airline = $byName->get(Str::lower(trim((string) $f->airline))) ?? $byCode->get($this->airlineCode((string) $f->flight_number));
+            if ($airline && $uris[$airline->id]) {
+                $logos[$f->id] = $uris[$airline->id];
+            }
+        }
+
+        return $logos;
     }
 
     /** "EY391" / "EY 391" -> "EY" and "391" (two-character airline designator). */
