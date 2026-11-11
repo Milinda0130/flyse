@@ -10,6 +10,8 @@ A single Laravel 13 + React project:
 
 ## First-time setup
 
+Requires PHP 8.4+ (the locked Symfony 8 packages need it), Composer, Node.js and MySQL.
+
 1. Create the database:
    ```sql
    CREATE DATABASE flight_tickets CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
