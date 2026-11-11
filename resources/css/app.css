@@ -1,0 +1,126 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-canvas text-slate-800;
+  }
+
+  /* Large desktops and TVs: scale everything up (Tailwind sizes are rem-based). */
+  @media (min-width: 1920px) { html { font-size: 17px; } }
+  @media (min-width: 2560px) { html { font-size: 20px; } }
+  @media (min-width: 3400px) { html { font-size: 26px; } }
+}
+
+@layer components {
+  /* 16px on phones so iOS Safari does not zoom into focused fields. */
+  .input {
+    @apply block w-full rounded-md border border-slate-300 bg-surface px-3 py-2 text-base text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/25 disabled:bg-slate-100 disabled:text-slate-500 sm:text-sm;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-slate-600;
+  }
+  .card {
+    @apply rounded-lg border border-slate-200 bg-surface shadow-sm;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md bg-gold px-4 py-2 text-sm font-semibold text-ink shadow-sm transition hover:bg-gold-light focus:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-surface;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-surface px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50;
+  }
+  .table-base {
+    @apply min-w-full divide-y divide-slate-200 text-sm;
+  }
+  .table-base th {
+    @apply bg-slate-50 px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-600;
+  }
+  .table-base td {
+    @apply px-3 py-2 align-top;
+  }
+  .link {
+    @apply font-medium text-brand-700 hover:text-brand-800 hover:underline;
+  }
+
+  /* Fixed background image behind the app (position: fixed works on iOS, unlike background-attachment). */
+  .app-backdrop {
+    @apply pointer-events-none fixed inset-0 -z-10 bg-cover bg-center;
+  }
+  .app-backdrop::after {
+    content: '';
+    @apply absolute inset-0 bg-canvas/[0.88] dark:bg-canvas/[0.86];
+  }
+}
+
+/*
+ * Phones: tables become stacked cards. Each cell shows its column heading,
+ * taken from data-label (set automatically by lib/responsiveTables.ts).
+ */
+@media (max-width: 767px) {
+  .table-base thead {
+    display: none;
+  }
+  .table-base,
+  .table-base tbody,
+  .table-base tr,
+  .table-base td {
+    display: block;
+    width: 100%;
+  }
+  .table-base tr {
+    padding: 0.625rem 0.875rem;
+  }
+  /* Label in column 1 (spanning rows); everything the cell contains stacks in column 2. */
+  .table-base td {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 38%) minmax(0, 1fr);
+    column-gap: 1rem;
+    justify-items: end;
+    padding: 0.2rem 0;
+    text-align: right;
+    max-width: none;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .table-base td::before {
+    content: attr(data-label);
+    grid-column: 1;
+    grid-row: 1 / span 12;
+    justify-self: start;
+    padding-top: 0.1rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    text-align: left;
+    text-transform: uppercase;
+    color: rgb(var(--slate-500));
+  }
+  .table-base td:not([data-label])::before,
+  .table-base td[data-label='']::before {
+    content: none;
+  }
+  .table-base td:not([data-label]),
+  .table-base td[data-label=''] {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.25rem;
+  }
+  .table-base td:empty {
+    display: none;
+  }
+}
+
+@media print {
+  .no-print { display: none !important; }
+  .app-backdrop { display: none; }
+  body { background: white; }
+}
